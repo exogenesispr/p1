@@ -17,7 +17,12 @@ export const authOptions: NextAuthOptions = {
 
                 let dbUser = await User.findOne({ email: user.email })
 
-                return dbUser?.role === 'admin'
+                if (dbUser?.role === 'admin') {
+                    user.id = dbUser._id.toString()
+                    return true
+                }
+
+                return false
             } catch (error) {
                 console.error('Error during sign in: ', error);
                 return false;
@@ -25,13 +30,15 @@ export const authOptions: NextAuthOptions = {
         },
         async jwt({ token, user }) {
             if (user) {
-                token.role = 'admin'
+                token.role = 'admin';
+                token.id = user.id
             }
             return token
         },
         async session({ session, token }) {
             if (session.user) {
                 session.user.role = token.role as string
+                session.user.id = token.id as string
             }
             return session
         },
