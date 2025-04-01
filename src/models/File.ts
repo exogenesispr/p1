@@ -4,10 +4,11 @@ export interface IFile {
     title: string;
     description: string;
     category: string;
-    fileUrl: string;
-    s3Key: string;
+    fileUrl: string | null;
+    s3Key: string | null;
     uploadedBy: mongoose.Types.ObjectId;
     downloads: number;
+    status: 'pending' | 'active' | 'error';
     createdAt: Date;
     updatedAt: Date;
 }
@@ -28,11 +29,15 @@ const fileSchema = new mongoose.Schema<IFile>(
         },
         fileUrl: {
             type: String,
-            required: [true, 'File URL is required'],
+            required: function (this: { status: string }) {
+                return this.status === 'active'
+            },
         },
         s3Key: {
             type: String,
-            required: [true, 'S3 key is required'],
+            required: function (this: { status: string }) {
+                return this.status === 'active'
+            },
         },
         uploadedBy: {
             type: mongoose.Schema.Types.ObjectId,
@@ -42,6 +47,11 @@ const fileSchema = new mongoose.Schema<IFile>(
         downloads: {
             type: Number,
             default: 0,
+        },
+        status: {
+            type: String,
+            enum: ['pending', 'active', 'error'],
+            default: 'pending',
         },
     },
     {
