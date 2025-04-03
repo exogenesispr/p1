@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import File from '@/models/File';
 import connectDB from '@/lib/mongodb';
+import { validateAndCategorizeFile } from '@/lib/fileValidation';
 
 export async function POST(request: NextRequest) {
     let createdFile = null;
@@ -13,27 +14,30 @@ export async function POST(request: NextRequest) {
         const session = await getServerSession(authOptions);
 
         if (!session?.user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const formData = await request.formData();
         const file = formData.get('file') as File;
         const title = formData.get('title') as string;
         const description = formData.get('description') as string;
-        const category = formData.get('category') as string;
 
         if (!file || !title) {
             return NextResponse.json(
                 { error: 'File and title are required' },
                 { status: 400 }
-            )
+            );
         }
 
+        const validationResult = validateAndCategorizeFile(file);
+
         await connectDB();
+
         createdFile = await File.create({
             title,
             description,
-            category,
+            category: validationResult.category,
+            mimeType: validationResult.mimeType,
             fileUrl: null,
             s3Key: null,
             uploadedBy: session.user.id,
@@ -41,17 +45,16 @@ export async function POST(request: NextRequest) {
         });
 
         const buffer = Buffer.from(await file.arrayBuffer());
-        const fileName = file.name
-        const fileType = file.type
+        const fileName = file.name;
+        const fileType = file.type;
 
         const { fileUrl, key } = await uploadFileToS3({
             fileName,
             fileType,
             file: buffer
-        })
+        });
         uploadedS3Key = key;
 
-        await connectDB();
         const updatedFile = await File.findByIdAndUpdate(
             createdFile._id,
             {
@@ -65,13 +68,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(updatedFile, { status: 201 })
 
     } catch (error) {
-        console.error('Error uploading file: ', error)
+        console.error('Error uploading file: ', error);
 
         if (uploadedS3Key) {
             try {
                 await deleteFileFromS3(uploadedS3Key);
             } catch (cleanupError) {
-                console.error('Error cleaning up S3: ', cleanupError)
+                console.error('Error cleaning up S3: ', cleanupError);
             }
         }
 
@@ -79,13 +82,13 @@ export async function POST(request: NextRequest) {
             try {
                 await File.findByIdAndUpdate(createdFile._id, { status: 'error' });
             } catch (cleanupError) {
-                console.error('Error updating file status: ', cleanupError)
+                console.error('Error updating file status: ', cleanupError);
             }
         }
 
         return NextResponse.json(
             { error: 'Failed to upload file' },
             { status: 500 }
-        )
+        );
     }
 }
