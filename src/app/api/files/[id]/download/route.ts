@@ -4,6 +4,7 @@ import { authOptions } from '../../../auth/[...nextauth]/route';
 import File from '@/models/File';
 import connectDB from '@/lib/mongodb';
 import { getFileSignedUrl } from '@/lib/s3';
+import { generatePreviewConfig } from '@/lib/previewHandler';
 
 export async function GET(
     request: NextRequest,
@@ -31,17 +32,16 @@ export async function GET(
         }
 
         const signedUrl = await getFileSignedUrl(file.s3Key);
+        const fileData = file.toObject();
+        fileData.fileUrl = signedUrl;
 
-        return NextResponse.json({
-            file: {
-                title: file.title,
-                description: file.description,
-                downloads: file.downloads,
-                uploadedBy: file.uploadedBy,
-                createdAt: file.createdAt,
-            },
-            downloadUrl: signedUrl,
-        })
+        fileData.preview = generatePreviewConfig(
+            fileData.category,
+            signedUrl,
+            fileData.mimeType
+        );
+
+        return NextResponse.json(fileData)
     } catch (error) {
         console.error('Error processing file: ', error);
         return NextResponse.json({ error: 'Failed to process download' }, { status: 500 })

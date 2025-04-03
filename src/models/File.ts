@@ -1,9 +1,11 @@
 import mongoose from 'mongoose';
+import { FileCategory } from '@/lib/fileValidation';
 
 export interface IFile {
     title: string;
     description: string;
-    category: string;
+    category: FileCategory;
+    mimeType: string;
     fileUrl: string | null;
     s3Key: string | null;
     uploadedBy: mongoose.Types.ObjectId;
@@ -25,7 +27,12 @@ const fileSchema = new mongoose.Schema<IFile>(
         },
         category: {
             type: String,
-            required: [true, 'Please provide a category'],
+            enum: ['image', 'video', 'audio', 'document', 'archive', 'other'],
+            required: true,
+        },
+        mimeType: {
+            type: String,
+            required: true,
         },
         fileUrl: {
             type: String,
