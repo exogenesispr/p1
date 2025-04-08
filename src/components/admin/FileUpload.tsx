@@ -15,7 +15,11 @@ interface FileMetadata {
   description: string
 }
 
-export function FileUpload() {
+interface FileUploadProps {
+  onUploadSuccess?: () => void
+}
+
+export function FileUpload({ onUploadSuccess }: FileUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [metadata, setMetadata] = useState<FileMetadata>({
@@ -34,7 +38,8 @@ export function FileUpload() {
         }))
       } catch (error) {
         toast.error('Invalid file', {
-          description: error instanceof Error ? error.message : "File validation failed"
+          description: error instanceof Error ? error.message : "File validation failed",
+          className: "bg-destructive text-destructive-foreground"
         })
       }
     }
@@ -60,13 +65,15 @@ export function FileUpload() {
       }
 
       toast.success('File uploaded successfully')
+      onUploadSuccess?.() // Call the callback if provided
 
       // Reset form
       setSelectedFile(null)
       setMetadata({ title: '', description: '' })
     } catch (error) {
       toast.error('Upload failed', {
-        description: error instanceof Error ? error.message : "Failed to upload file"
+        description: error instanceof Error ? error.message : "Failed to upload file",
+        className: "bg-destructive text-destructive-foreground"
       })
     } finally {
       setIsUploading(false)
@@ -84,19 +91,37 @@ export function FileUpload() {
       <div
         {...getRootProps()}
         className={`
-          flex items-center justify-center w-full h-32 rounded-md border-2 border-dashed
-          ${isDragActive ? 'border-primary bg-primary/5' : 'border-gray-300'}
-          cursor-pointer transition-colors
+          relative w-full h-32 rounded-lg border-2 border-dashed
+          ${isDragActive 
+            ? 'border-primary bg-primary/5' 
+            : 'border-gray-300 hover:border-primary hover:bg-primary/5'
+          }
+          cursor-pointer transition-all duration-200 ease-in-out
+          group
+          overflow-hidden
         `}
       >
-        <input {...getInputProps()} />
-        <div className="text-center">
-          <Upload className="h-8 w-8 mx-auto text-gray-400" />
-          <p className="mt-2 text-sm text-gray-600">
-            {isDragActive
-              ? 'Drop the file here'
-              : 'Drag and drop a file here, or click to select'}
-          </p>
+        <input {...getInputProps()} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <div className={`
+            flex flex-col items-center justify-center
+            ${isDragActive ? 'scale-110' : 'group-hover:scale-105'}
+            transition-transform duration-200 ease-in-out
+          `}>
+            <Upload className={`
+              h-8 w-8 mb-2
+              ${isDragActive ? 'text-primary' : 'text-gray-400 group-hover:text-primary'}
+              transition-colors duration-200
+            `} />
+            <p className={`
+              text-sm
+              ${isDragActive ? 'text-primary font-medium' : 'text-gray-600'}
+              whitespace-nowrap
+              transition-colors duration-200
+            `}>
+              {isDragActive ? 'Drop the file here' : 'Drag and drop a file here, or click to select'}
+            </p>
+          </div>
         </div>
       </div>
 
