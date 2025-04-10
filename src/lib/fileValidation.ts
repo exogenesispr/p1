@@ -42,7 +42,7 @@ export function validateAndCategorizeFile(file: File) {
     const config = CATEGORY_CONFIGS[category];
 
     if (file.size > config.maxSize) {
-        throw new Error(`File size exceeds the maximum limit of ${config.maxSize} bytes for category ${category}`);
+        throw new Error(`File size exceeds the maximum limit of ${config.maxSize / 1024 / 1024} MB for category ${category}`);
     }
 
     if (category !== 'other' && !config.allowedMimeTypes.includes(file.type)) {
@@ -57,9 +57,9 @@ export function validateAndCategorizeFile(file: File) {
 }
 
 export function categorizeFile(mimeType: string): FileCategory {
+    if (mimeType.startsWith('image/')) return 'image';
     if (mimeType.startsWith('video/')) return 'video';
     if (mimeType.startsWith('audio/')) return 'audio';
-
 
     const documentTypes = [
         'application/pdf',
