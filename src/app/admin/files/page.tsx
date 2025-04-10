@@ -19,8 +19,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { FileUpload } from '@/components/admin/FileUpload'
+import { FilePreview } from '@/components/admin/FilePreview'
 import { Download, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { generatePreviewConfig } from '@/lib/previewHandler'
+import { FileCategory } from '@/lib/fileValidation'
 
 interface File {
   _id: string
@@ -125,73 +128,84 @@ export default function FilesPage() {
         </Select>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Upload Date</TableHead>
-              <TableHead>Downloads</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
+      <div className="relative">
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
-                  Loading...
-                </TableCell>
+                <TableHead>Name</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Upload Date</TableHead>
+                <TableHead>Downloads</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
-            ) : files.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
-                  No files found
-                </TableCell>
-              </TableRow>
-            ) : (
-              files.map((file) => (
-                <TableRow key={file._id}>
-                  <TableCell className="font-medium">{file.title}</TableCell>
-                  <TableCell className="capitalize">{file.category}</TableCell>
-                  <TableCell>
-                    {new Date(file.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>{file.downloads}</TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      file.status === 'active' ? 'bg-green-100 text-green-800' :
-                      file.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {file.status}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDownload(file._id)}
-                        disabled={file.status !== 'active'}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(file._id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-4">
+                    Loading...
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : files.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-4">
+                    No files found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                files.map((file) => (
+                  <TableRow key={file._id}>
+                    <TableCell className="font-medium relative">
+                      <FilePreview 
+                        file={{
+                          ...file,
+                          preview: generatePreviewConfig(file.category as FileCategory, file.fileUrl, file.mimeType)
+                        }} 
+                      />
+                    </TableCell>
+                    <TableCell className="capitalize">{file.category}</TableCell>
+                    <TableCell>
+                      {new Date(file.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>{file.downloads}</TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        file.status === 'active' ? 'bg-green-100 text-green-800' :
+                        file.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {file.status}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDownload(file._id)}
+                          disabled={file.status !== 'active'}
+                          className='cursor-pointer hover:bg-gray-200 transition-colors'
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(file._id)}
+                          className='cursor-pointer hover:bg-red-100 transition-colors'
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   )

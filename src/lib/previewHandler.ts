@@ -1,6 +1,6 @@
 import { FileCategory } from "./fileValidation";
 
-interface PreviewConfig {
+export interface PreviewConfig {
     canPreview: boolean;
     previewType: 'image' | 'iframe' | 'download' | 'audio' | 'none';
     icon: string;

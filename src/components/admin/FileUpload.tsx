@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Upload, X } from 'lucide-react'
 import { validateAndCategorizeFile } from '@/lib/fileValidation'
 import { toast } from 'sonner'
-
+import { Progress } from '@/components/ui/progress'
 interface FileMetadata {
   title: string
   description: string
@@ -21,6 +21,7 @@ interface FileUploadProps {
 
 export function FileUpload({ onUploadSuccess }: FileUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [metadata, setMetadata] = useState<FileMetadata>({
     title: '',
@@ -55,6 +56,31 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
       formData.append('title', metadata.title)
       formData.append('description', metadata.description)
 
+      const fileStream = selectedFile.stream()
+      const totalSize = selectedFile.size
+      let uploadedSize = 0
+
+      const streamWithProgress = new ReadableStream({
+        async start(controller) {
+          const reader = fileStream.getReader()
+          while(true) {
+            const {done, value} = await reader.read()
+            if (done) break
+
+            uploadedSize += value.length
+            const progress = Math.round((uploadedSize * 100) / totalSize)
+            setUploadProgress(progress)
+
+            controller.enqueue(value)
+          }
+
+          controller.close()
+        }
+      })
+
+      const newBlob = await new Response(streamWithProgress).blob()
+      formData.append('file', newBlob)
+
       const response = await fetch('/api/files/upload', {
         method: 'POST',
         body: formData
@@ -77,6 +103,7 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
       })
     } finally {
       setIsUploading(false)
+      setUploadProgress(0)
     }
   }
 
@@ -137,6 +164,16 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
               <X className="h-4 w-4" />
             </Button>
           </div>
+
+          {isUploading && (
+            <div className="space-y-2">
+              <div className='flex justify-between text-sm text-gray-600'>
+                <span>Uploading...</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <Progress value={uploadProgress} className='w-full' />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
