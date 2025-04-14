@@ -2,25 +2,28 @@
 
 import { signIn } from 'next-auth/react';
 import {useState} from 'react';
-import {useRouter} from 'next/navigation';
+import {useRouter, useSearchParams} from 'next/navigation';
 
 export default function SignIn() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const callbackUrl = searchParams.get('callbackUrl') || '/admin';
 
     const handleGoogleSignIn = async () => {
         try {
             setIsLoading(true);
             const result = await signIn('google', {
-                callbackUrl: '/admin',
+                callbackUrl,
                 redirect: false,
             })
 
             if (result?.error) {
                 setError('You are not authorized to acces this area')
             } else {
-                router.push('/admin')
+                router.push(callbackUrl)
                 router.refresh()
             }
         } catch (error) {
@@ -30,8 +33,6 @@ export default function SignIn() {
             setIsLoading(false);
         }
     }
-
-    
 
     return (<div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
@@ -60,7 +61,7 @@ export default function SignIn() {
             ) : (
               <>
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                  <path
+                <path
                     fill="currentColor"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                   />
